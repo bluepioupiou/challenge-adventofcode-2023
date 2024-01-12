@@ -1,0 +1,71 @@
+# Pour le 2ème exercice, l'idée était simplement, de façon un peu brute, de boucler sur les cartes possibles et de remplacer TOUS les jokers par la même carte
+# (tous parce que ça semble logique qu'il faut mieux donner la même valeur à tous les jokers : JJAQ2 pas la peine de répartir entre A et Q, tous les J en A c'est mieux parceque trois cartes c'est mieux placé que 2 paires)
+# On choisit, parmis toutes ces possibilités, celle qui donne le meilleur score
+# ( Normalement, comme on commence par les carte de plus haut rang, ça veut dire qu'on choisira toujours d'avoir JAK22 qui devient AAK22 et pas KAK22, important pour la suite du calcul de points en cas d'égalité)
+# Chaque carte peut donc avoir un type qui lui correspond. Il est ensuite facile de définir une fonction de tri qui utilise ce typage pour comparer les cartes, dans laquelle il faut rajouter les cas d'égalité
+
+import re
+import functools
+file = open('7.txt', 'r')
+lines = file.readlines()
+
+labels = ["A", "K", "Q", "T", "9", "8", "7", "6", "5", "4", "3", "2", "J"]
+types = ["Five of a kind", "Four of a kind", "Full house", "Three of a kind", "Two pair", "One pair", "High card"]
+
+# Fonction de typage de la main, qui boucle sur les cartes pour remplacer les jokers
+def get_type(hand):
+    counts = []
+    best_type = types.index("High card")
+    for replace in labels:
+        cards = hand["cards"].replace("J", replace)
+        #print(f"--Testing {cards}")
+        for label in labels:
+            counts.append(cards.count(label))
+        #print(f"-- counts: {counts}")
+        if 5 in counts and best_type > types.index("Five of a kind"):
+            best_type = types.index("Five of a kind")
+        elif 4 in counts and best_type > types.index("Four of a kind"):
+            best_type = types.index("Four of a kind")
+        elif 3 in counts and 2 in counts and best_type > types.index("Full house"):
+            best_type = types.index("Full house")
+        elif 3 in counts and best_type > types.index("Three of a kind"):
+            best_type = types.index("Three of a kind")
+        elif counts.count(2) == 2 and best_type > types.index("Two pair"):
+            best_type = types.index("Two pair")
+        elif 2 in counts and best_type > types.index("One pair"):
+            best_type = types.index("One pair")
+        #print(f"--> best type {best_type}")
+
+    return types[best_type]
+
+# Fonction de tri qui utilise le get_type
+def get_strength(first, second):
+    first_type = get_type(first)
+    second_type = get_type(second)
+    if types.index(first_type) < types.index(second_type):
+        return 1
+    elif types.index(first_type) > types.index(second_type):
+        return -1
+    else:
+        for first_card, second_card in zip(first["cards"], second["cards"]):
+            if labels.index(first_card) < labels.index(second_card):
+                return 1
+            elif labels.index(first_card) > labels.index(second_card):
+                return -1
+
+
+hands = []
+# On parcour juste pour avoir une liste de mains
+for line in lines:
+    cards, bid = line.split(" ")
+    hand = {"cards": cards, "bid": int(bid)}
+    hands.append(hand)
+    print(f"Type of {cards}: {get_type(hand)}")
+
+# On trie la liste de mains avec notre fonction get_strength
+hands = sorted(hands, key=functools.cmp_to_key(get_strength))
+print(f"Sorted {hands}")
+total = 0
+for rank, hand in enumerate(hands, 1):
+    total += rank * hand["bid"]
+print(f"Solution {total}")
